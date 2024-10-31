@@ -1,19 +1,17 @@
 from torch.utils.data import Dataset
 import json
 from transformers import AutoTokenizer, AutoProcessor
-from underthesea import word_tokenize
 import re
 import json
 import torch
 import pandas as pd
-from omegaconf import OmegaConf
 from typing import List, Optional, Union
 import transformers
 from transformers.utils import TensorType
 from PIL import Image
-import os
-cert = r"Zscaler Root CA.crt"
-os.environ["REQUESTS_CA_BUNDLE"] = cert
+# import os
+# cert = r"Zscaler Root CA.crt"
+# os.environ["REQUESTS_CA_BUNDLE"] = cert
 
 import logging
 
@@ -49,7 +47,7 @@ class ViVQADataset(Dataset):
         question = self.df['question'].iloc[idx]
         
         img_id = self.df['img_id'].iloc[idx]
-        image = Image.open(f'{self.image_path}/{img_id}.jpg').convert("RGB")
+        image = Image.open(f'{self.image_path}/{img_id}.jpg')
         
         answer = self.answers[idx]
         
@@ -59,6 +57,7 @@ class ViVQADataset(Dataset):
                                 truncation=True,
                                 padding='max_length')
         # inputs |= {'labels': answer}
+        inputs = {"input_ids": inputs['input_ids'][0], "pixel_values": inputs['pixel_values'][0]}
         attention_mask = 1 - inputs['input_ids']
         attention_mask[attention_mask <0] = 1
         inputs |= {"attention_mask" : attention_mask}
@@ -84,5 +83,6 @@ class ProcessedData:
 if __name__ == '__main__':
     train_dataset, test_dataset = ProcessedData("csv_data/train.csv", "csv_data/test.csv", "images/train", "images/test").processing()
     for d in train_dataset:
-        print(d)
+        print(d['input_ids'].size())
+        print(d['pixel_values'].size())
         break

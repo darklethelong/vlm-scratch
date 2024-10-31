@@ -79,6 +79,7 @@ def main():
     )
 
     model = CustomModel()
+    # model = AutoModel.from_pretrained("google/siglip-base-patch16-256-multilingual")
 
     trainer = Trainer(
         model=model,

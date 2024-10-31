@@ -2,8 +2,8 @@ from transformers import AutoProcessor, AutoModel
 import torch.nn as nn
 from PIL import Image
 import os
-cert = r"Zscaler Root CA.crt"
-os.environ["REQUESTS_CA_BUNDLE"] = cert
+# cert = r"Zscaler Root CA.crt"
+# os.environ["REQUESTS_CA_BUNDLE"] = cert
 
 class CustomModel(nn.Module):
     
