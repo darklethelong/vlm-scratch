@@ -11,19 +11,26 @@ from typing import List, Optional, Union
 import transformers
 from transformers.utils import TensorType
 from PIL import Image
-from transformers.utils import logging
+import os
+cert = r"Zscaler Root CA.crt"
+os.environ["REQUESTS_CA_BUNDLE"] = cert
 
-logger = logging.get_logger(__name__)
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 class ViVQADataset(Dataset):
     def __init__(self, dataframe_path, image_path, model_path = None, answers_path = "answer_path.json"):
+        
+        logging.info("Loading answer vocab")
         with open(answers_path, 'r') as f:
             self.vocab = json.loads(f.read())
             
         self.df = pd.read_csv(dataframe_path)
         self.df['answer2idx'] = self.df.apply(lambda x: self.vocab[x.answer], axis = 1)
   
-        self.answers = list(self.df['answer2idx'])
+        self.answers_ids = list(self.df['answer2idx'])
+        self.answers = list(self.df['answer'])
         
         self.image_path = image_path
         if model_path == None:
@@ -32,7 +39,7 @@ class ViVQADataset(Dataset):
             try:
                 self.processor= AutoProcessor.from_pretrained(model_path)
             except:
-                logger.info("Fail to load processor model!!!")
+                logging.info("Fail to load processor model!!!")
                 
 
     def __len__(self):
@@ -42,16 +49,20 @@ class ViVQADataset(Dataset):
         question = self.df['question'].iloc[idx]
         
         img_id = self.df['img_id'].iloc[idx]
-        image = Image.open(f'{self.image_path}/{img_id}.jpg')
+        image = Image.open(f'{self.image_path}/{img_id}.jpg').convert("RGB")
         
         answer = self.answers[idx]
         
         #processor(text=texts, images=image, padding="max_length", return_tensors="pt")
-        inputs = self.processor(text = question, images = image, 
+        inputs = self.processor(text = question + answer, images = image, 
                                 return_tensors='pt', 
                                 truncation=True,
                                 padding='max_length')
-        inputs |= {'labels': answer}
+        # inputs |= {'labels': answer}
+        attention_mask = 1 - inputs['input_ids']
+        attention_mask[attention_mask <0] = 1
+        inputs |= {"attention_mask" : attention_mask}
+        # print(inputs)
         return inputs
 
 class ProcessedData:
@@ -63,9 +74,15 @@ class ProcessedData:
         self.test_image_path = test_image_path
     
     def processing(self):
+        logging.info("Processing train data!")
         train_dataset = ViVQADataset(self.train_df_path, self.train_image_path)
+        
+        logging.info("Processing test data!")
         test_dataset = ViVQADataset(self.test_df_path, self.test_image_path)
         return train_dataset, test_dataset
     
 if __name__ == '__main__':
     train_dataset, test_dataset = ProcessedData("csv_data/train.csv", "csv_data/test.csv", "images/train", "images/test").processing()
+    for d in train_dataset:
+        print(d)
+        break
