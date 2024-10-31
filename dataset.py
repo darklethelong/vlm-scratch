@@ -68,4 +68,4 @@ class ProcessedData:
         return train_dataset, test_dataset
     
 if __name__ == '__main__':
-    train_dataset, test_dataset = ProcessedData("/csv_data/train.csv", "/csv_data/test.csv", "/images/train", "/images/test").processing()
+    train_dataset, test_dataset = ProcessedData("csv_data/train.csv", "csv_data/test.csv", "images/train", "images/test").processing()
